@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto mt-20 px-4">
+    <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg">
+        <h2 class="text-2xl font-bold text-[#2a6f97] mb-6 text-center">
+            Login to Your Account
+        </h2>
+
+        {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                    <p class="text-sm {{ message.tags }} text-red-600">{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block font-semibold mb-1">Username</label>
+                <input type="text" name="username" 
+                       class="w-full border rounded p-2 focus:ring-2 focus:ring-[#2a6f97]" 
+                       required>
+            </div>
+            <div class="mb-4">
+                <label class="block font-semibold mb-1">Password</label>
+                <input type="password" name="password" 
+                       class="w-full border rounded p-2 focus:ring-2 focus:ring-[#2a6f97]" 
+                       required>
+            </div>
+
+            {% if form.errors %}
+                <p class="text-red-600 text-sm mb-2">Invalid username or password.</p>
+            {% endif %}
+
+            <button type="submit" 
+                    class="bg-[#2a6f97] hover:bg-[#1a4d6e] text-white font-bold py-2 px-4 rounded w-full">
+                Login
+            </button>
+        </form>
+
+        <div class="mt-4 text-center">
+            <p class="text-gray-600 text-sm">
+                Don’t have an account? 
+                {% comment %} <a href="{% url 'register' %}" class="text-[#2a6f97] font-semibold hover:underline">Register</a> {% endcomment %}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

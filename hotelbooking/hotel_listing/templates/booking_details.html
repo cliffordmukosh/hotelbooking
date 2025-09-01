@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Booking Details | Hotel Booking{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-8 px-4">
+    <h2 class="text-2xl font-bold mb-6 text-white">Booking Details: ID {{ booking.id }}</h2>
+
+    <div class="bg-white p-6 rounded-lg shadow-lg">
+        <h3 class="text-xl font-semibold text-[#2a6f97] mb-4">Booking Information</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <p><strong>Primary Guest:</strong> {{ booking.primary_guest.first_name }} {{ booking.primary_guest.last_name }}</p>
+                <p><strong>Email:</strong> {{ booking.primary_guest.email|default:"N/A" }}</p>
+                <p><strong>Phone:</strong> {{ booking.primary_guest.phone|default:"N/A" }}</p>
+                <p><strong>Booking Status:</strong> 
+                    <span class="px-2 py-1 rounded text-white text-xs 
+                        {% if booking.booking_status == 'Confirmed' %} bg-green-600
+                        {% elif booking.booking_status == 'Pending' %} bg-yellow-500
+                        {% elif booking.booking_status == 'Cancelled' %} bg-red-600
+                        {% else %} bg-gray-500 {% endif %}">
+                        {{ booking.booking_status }}
+                    </span>
+                </p>
+                <p><strong>Payment Status:</strong> 
+                    <span class="px-2 py-1 rounded text-white text-xs
+                        {% if booking.payment_status == 'Paid' %} bg-green-600
+                        {% elif booking.payment_status == 'Partial' %} bg-yellow-500
+                        {% elif booking.payment_status == 'Unpaid' %} bg-red-600
+                        {% else %} bg-gray-500 {% endif %}">
+                        {{ booking.payment_status|default:"Unpaid" }}
+                    </span>
+                </p>
+            </div>
+            <div>
+                <p><strong>Check-in Date:</strong> {{ booking.start_date }}</p>
+                <p><strong>Check-out Date:</strong> {{ booking.end_date }}</p>
+                <p><strong>Created At:</strong> {{ booking.created_at }}</p>
+                <p><strong>Total Price:</strong> KSh {{ booking.total_price }}</p>
+                <p><strong>Number of Adults:</strong> {{ booking.num_adults }}</p>
+                <p><strong>Number of Children:</strong> {{ booking.num_children }}</p>
+            </div>
+        </div>
+
+        <h3 class="text-xl font-semibold text-[#2a6f97] mt-6 mb-4">Room Details</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <p><strong>Room Number:</strong> {{ booking.room.room_number }}</p>
+                <p><strong>Room Type:</strong> {{ booking.room.room_type }}</p>
+            </div>
+            <div>
+                <p><strong>Bed Type:</strong> {{ booking.room.bed_type }}</p>
+                <p><strong>Price per Night:</strong> KSh {{ booking.room.price_per_night }}</p>
+                <p><strong>Capacity (Adults/Children):</strong> {{ booking.room.capacity_adults }}/{{ booking.room.capacity_children }}</p>
+            </div>
+        </div>
+
+        <h3 class="text-xl font-semibold text-[#2a6f97] mt-6 mb-4">Guests</h3>
+        <ul class="list-disc pl-5">
+            {% for booking_guest in booking.booking_guests.all %}
+            <li>
+                {{ booking_guest.guest.first_name }} {{ booking_guest.guest.last_name }} 
+                ({{ booking_guest.is_child|yesno:"Child,Adult" }}) 
+                - Email: {{ booking_guest.guest.email|default:"N/A" }}, 
+                Phone: {{ booking_guest.guest.phone|default:"N/A" }}
+            </li>
+            {% empty %}
+            <li>No additional guests.</li>
+            {% endfor %}
+        </ul>
+
+        <h3 class="text-xl font-semibold text-[#2a6f97] mt-6 mb-4">Meal Preferences</h3>
+        <ul class="list-disc pl-5">
+            {% for preference in booking.meal_preferences.all %}
+            <li>{{ preference.meal.name }} (KSh {{ preference.meal.price }})</li>
+            {% empty %}
+            <li>No meals selected.</li>
+            {% endfor %}
+        </ul>
+
+        <div class="mt-6">
+            <a href="{% url 'dashboard' %}" 
+               class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-700">
+                Back to Dashboard
+            </a>
+            {% if booking.payment_status == 'Paid' %}
+            <a href="{% url 'print_receipt' booking.id %}" 
+               class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700" target="_blank">
+                <i class="fa fa-print"></i> Print Receipt
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

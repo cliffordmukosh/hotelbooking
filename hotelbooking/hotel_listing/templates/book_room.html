@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_tags %}
+{% block content %}
+<div class="grid md:grid-cols-2 gap-6 mt-8">
+    <!-- Left: Room & Booking Form -->
+    <div class="bg-white p-6 rounded-lg shadow-lg">
+        <h2 class="text-2xl font-bold text-[#2a6f97] mb-4">
+            Booking: Room {{ room.room_number }} - {{ room.room_type }}
+        </h2>
+
+        {% if error %}
+            <p class="text-red-600 text-sm mb-4">{{ error }}</p>
+        {% endif %}
+
+        <form method="get" id="bookingForm" action="{% url 'confirm_booking' room.id %}">
+            {% csrf_token %}
+            <input type="hidden" id="capacityAdults" value="{{ room.capacity_adults }}">
+            <input type="hidden" id="capacityChildren" value="{{ room.capacity_children }}">
+
+            <div class="mb-4">
+                <label class="block font-semibold mb-1">Check-in</label>
+                <input type="date" name="checkin" id="checkin" value="{{ checkin }}" 
+                       class="w-full border rounded p-2" required>
+            </div>
+            <div class="mb-4">
+                <label class="block font-semibold mb-1">Check-out</label>
+                <input type="date" name="checkout" id="checkout" value="{{ checkout }}" 
+                       class="w-full border rounded p-2" required>
+            </div>
+
+            <!-- Adults, Children, Rooms in one row -->
+            <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block font-semibold mb-1">Adults</label>
+                    <input type="number" name="adults" id="adults"
+                           value="{{ adults|default:1 }}"
+                           min="1" class="w-full border rounded p-2 text-center">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Children</label>
+                    <input type="number" name="children" id="children"
+                           value="{{ children|default:0 }}"
+                           min="0" class="w-full border rounded p-2 text-center">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Rooms</label>
+                    <input type="number" name="rooms" id="rooms"
+                           value="{{ rooms|default:1 }}"
+                           min="1" class="w-full border rounded p-2 text-center">
+                </div>
+            </div>
+
+            <!-- Meal selection -->
+            <div class="mb-4">
+                <label class="block font-semibold mb-2">Select Meals:</label>
+                {% for meal in meals %}
+                    <div class="flex items-center mb-1">
+                        <input type="checkbox" name="meals" value="{{ meal.id }}" class="meal-checkbox" data-price="{{ meal.price }}"
+                               {% if meal.id|stringformat:"s" in selected_meals %}checked{% endif %}>
+                        <span class="ml-2">{{ meal.name }} (KSh {{ meal.price }})</span>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <p id="capacityError" class="text-red-600 text-sm mb-2 hidden"></p>
+
+            <button type="submit" 
+                    class="bg-[#2a6f97] hover:bg-[#1a4d6e] text-white font-bold py-2 px-4 rounded">
+                Proceed to Guest Details
+            </button>
+        </form>
+    </div>
+
+    <!-- Right: Price Summary -->
+    <div class="bg-white p-6 rounded-lg shadow-lg">
+        <h2 class="text-xl font-bold text-[#2a6f97] mb-4">Price Summary</h2>
+        <div id="summary">
+            <p class="text-gray-600">Adjust inputs to see updated price.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const pricePerNight = {{ room.price_per_night }};
+    const maxAdults = parseInt(document.getElementById("capacityAdults").value);
+    const maxChildren = parseInt(document.getElementById("capacityChildren").value);
+
+    function calculateSummary() {
+        const checkin = new Date(document.getElementById("checkin").value);
+        const checkout = new Date(document.getElementById("checkout").value);
+        const adults = parseInt(document.getElementById("adults").value) || 0;
+        const children = parseInt(document.getElementById("children").value) || 0;
+        const rooms = parseInt(document.getElementById("rooms").value) || 1;
+
+        const errorBox = document.getElementById("capacityError");
+        if (adults > maxAdults * rooms || children > maxChildren * rooms) {
+            errorBox.innerText = `Exceeds room capacity. Max: ${maxAdults * rooms} adults, ${maxChildren * rooms} children.`;
+            errorBox.classList.remove("hidden");
+            return;
+        } else {
+            errorBox.classList.add("hidden");
+        }
+
+        if (checkin && checkout && checkout > checkin) {
+            const nights = Math.ceil((checkout - checkin) / (1000 * 60 * 60 * 24));
+            let roomTotal = pricePerNight * nights * rooms;
+
+            // Calculate meal prices
+            let mealTotal = 0;
+            const mealCheckboxes = document.querySelectorAll(".meal-checkbox:checked");
+            mealCheckboxes.forEach(cb => {
+                const mealPrice = parseFloat(cb.dataset.price);
+                mealTotal += mealPrice * nights * rooms;
+            });
+
+            const totalPrice = roomTotal + mealTotal;
+            const vat = totalPrice * 0.18;
+            const grandTotal = totalPrice + vat;
+
+            document.getElementById("summary").innerHTML = `
+                <p><i class="fa fa-calendar"></i> Stay Duration: <span class="font-semibold">${nights} night(s)</span></p>
+                <p><i class="fa fa-user"></i> Adults: <span class="font-semibold">${adults}</span></p>
+                <p><i class="fa fa-child"></i> Children: <span class="font-semibold">${children}</span></p>
+                <p><i class="fa fa-door-open"></i> Rooms: <span class="font-semibold">${rooms}</span></p>
+                <hr class="my-2">
+                <p>Room Price (${nights} nights): <span class="font-semibold">KSh ${roomTotal.toFixed(2)}</span></p>
+                <p>Meals: <span class="font-semibold">KSh ${mealTotal.toFixed(2)}</span></p>
+                <p>VAT (18%): <span class="font-semibold">KSh ${vat.toFixed(2)}</span></p>
+                <hr class="my-2">
+                <p class="text-lg font-bold">Total: <span class="text-[#2a6f97]">KSh ${grandTotal.toFixed(2)}</span></p>
+            `;
+        }
+    }
+
+    document.querySelectorAll("#checkin, #checkout, #adults, #children, #rooms")
+        .forEach(el => el.addEventListener("input", calculateSummary));
+
+    // Recalculate on meal selection
+    document.querySelectorAll(".meal-checkbox").forEach(cb => cb.addEventListener("change", calculateSummary));
+
+    document.getElementById("bookingForm").addEventListener("submit", function(e) {
+        const checkin = document.getElementById("checkin").value;
+        const checkout = document.getElementById("checkout").value;
+        const adults = document.getElementById("adults").value;
+        const rooms = document.getElementById("rooms").value;
+
+        if (!checkin || !checkout || !adults || !rooms) {
+            e.preventDefault();
+            alert("Please fill in check-in, check-out, adults, and rooms fields.");
+        } else {
+            const adultsNum = parseInt(adults) || 0;
+            const children = parseInt(document.getElementById("children").value) || 0;
+            const roomsNum = parseInt(rooms) || 1;
+
+            if (adultsNum > maxAdults * roomsNum || children > maxChildren * roomsNum) {
+                e.preventDefault();
+                alert("Booking exceeds room capacity!");
+            }
+        }
+    });
+
+    calculateSummary();
+</script>
+{% endblock %}

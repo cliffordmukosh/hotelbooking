@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_tags %}
+
+{% block content %}
+<div class="container mx-auto mt-8 px-4">
+    <div class="grid md:grid-cols-2 gap-6">
+        <!-- Left: Guest Details Form -->
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold text-[#2a6f97] mb-4">
+                Guest Details: Room {{ room.room_number }} - {{ room.room_type }}
+            </h2>
+
+            {% if error %}
+                <p class="text-red-600 text-sm mb-4">{{ error }}</p>
+            {% endif %}
+
+            <form method="post" id="bookingForm">
+                {% csrf_token %}
+                <input type="hidden" id="capacityAdults" value="{{ room.capacity_adults }}">
+                <input type="hidden" id="capacityChildren" value="{{ room.capacity_children }}">
+                <input type="hidden" name="checkin" value="{{ checkin }}">
+                <input type="hidden" name="checkout" value="{{ checkout }}">
+                <input type="hidden" name="adults" value="{{ adults }}">
+                <input type="hidden" name="children" value="{{ children }}">
+                <input type="hidden" name="rooms" value="{{ rooms }}">
+
+                <!-- Primary Guest -->
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold mb-2">Primary Guest</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        {% if request.user.is_authenticated %}
+                            <!-- Pre-filled fields for authenticated user -->
+                            <div>
+                                <label class="block font-semibold mb-1">Username</label>
+                                <input type="text" name="username" class="w-full border rounded p-2 guest-input" 
+                                       data-guest-type="adult" data-guest-index="0" 
+                                       value="{{ request.user.username }}" readonly>
+                            </div>
+                            <div></div> <!-- Empty div to maintain grid layout -->
+                            <div>
+                                <label class="block font-semibold mb-1">First Name</label>
+                                <input type="text" name="first_name" class="w-full border rounded p-2 guest-input" 
+                                       data-guest-type="adult" data-guest-index="0" 
+                                       value="{{ request.user.guest_profile.first_name }}" readonly>
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1">Last Name</label>
+                                <input type="text" name="last_name" class="w-full border rounded p-2 guest-input" 
+                                       data-guest-type="adult" data-guest-index="0" 
+                                       value="{{ request.user.guest_profile.last_name }}" readonly>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block font-semibold mb-1">Email</label>
+                                <input type="email" name="email" class="w-full border rounded p-2 guest-input" 
+                                       data-guest-type="adult" data-guest-index="0" 
+                                       value="{{ request.user.guest_profile.email|default:request.user.email }}" readonly>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block font-semibold mb-1">Phone (Optional)</label>
+                                <input type="text" name="phone" class="w-full border rounded p-2 guest-input" 
+                                       data-guest-type="adult" data-guest-index="0" 
+                                       value="{{ request.user.guest_profile.phone|default_if_none:'' }}" readonly>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="flex items-center mb-1">
+                                    <input type="checkbox" id="isPrimaryGuestInBooking" name="is_primary_guest_in_booking" checked>
+                                    <span class="ml-2 font-semibold">Are you one of the guests?</span>
+                                </label>
+                            </div>
+                        {% else %}
+                            <!-- Fields for account creation for unauthenticated users -->
+                            <div>
+                                <label class="block font-semibold mb-1">Username</label>
+                                <input type="text" name="username" class="w-full border rounded p-2 guest-input" 
+                                       data-guest-type="adult" data-guest-index="0" required>
+                            </div>
+                            <div></div> <!-- Empty div to maintain grid layout -->
+                            <div>
+                                <label class="block font-semibold mb-1">First Name</label>
+                                <input type="text" name="first_name" class="w-full border rounded p-2 guest-input" 
+                                       data-guest-type="adult" data-guest-index="0" required>
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1">Last Name</label>
+                                <input type="text" name="last_name" class="w-full border rounded p-2 guest-input" 
+                                       data-guest-type="adult" data-guest-index="0" required>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block font-semibold mb-1">Email</label>
+                                <input type="email" name="email" class="w-full border rounded p-2 guest-input" 
+                                       data-guest-type="adult" data-guest-index="0" required>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block font-semibold mb-1">Phone (Optional)</label>
+                                <input type="text" name="phone" class="w-full border rounded p-2 guest-input" 
+                                       data-guest-type="adult" data-guest-index="0">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block font-semibold mb-1">Password</label>
+                                <input type="password" name="password" id="password" class="w-full border rounded p-2" required>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block font-semibold mb-1">Confirm Password</label>
+                                <input type="password" name="confirm_password" id="confirmPassword" class="w-full border rounded p-2" required>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="flex items-center mb-1">
+                                    <input type="checkbox" id="isPrimaryGuestInBooking" name="is_primary_guest_in_booking">
+                                    <span class="ml-2 font-semibold">Are you one of the guests?</span>
+                                </label>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Additional Guests Button (for 2 or more total guests) -->
+                {% if adults|add:children >= 2 %}
+                <div class="mb-4">
+                    <button type="button" id="addGuestButton" class="bg-[#2a6f97] hover:bg-[#1a4d6e] text-white font-bold py-2 px-4 rounded">
+                        Add Additional Guests
+                    </button>
+                </div>
+                {% endif %}
+
+                <div class="mb-4">
+                    <label class="block font-semibold mb-2">Select Meals:</label>
+                    {% for meal in meals %}
+                    <div class="flex items-center mb-1">
+                        <input type="checkbox" name="meals" value="{{ meal.id }}" class="meal-checkbox" data-price="{{ meal.price }}"
+                               {% if meal.id|stringformat:"s" in selected_meals %}checked{% endif %}>
+                        <span class="ml-2">{{ meal.name }} (KSh {{ meal.price }})</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <p id="capacityError" class="text-red-600 text-sm mb-2 hidden"></p>
+                <p id="passwordError" class="text-red-600 text-sm mb-2 hidden"></p>
+                <p id="guestError" class="text-red-600 text-sm mb-2 hidden"></p>
+
+                <button type="submit" 
+                        class="bg-[#2a6f97] hover:bg-[#1a4d6e] text-white font-bold py-2 px-4 rounded">
+                    Confirm Booking
+                </button>
+            </form>
+        </div>
+
+        <!-- Right: Receipt and Guest List -->
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-bold text-[#2a6f97] mb-4">Booking Receipt</h2>
+            <div id="summary"></div>
+            <hr class="my-4">
+            <h3 class="text-lg font-semibold mb-2">Guests</h3>
+            <div id="guestList" class="text-gray-600">
+                <p>No additional guests added.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Additional Guests -->
+    {% if adults|add:children >= 2 %}
+    <div id="guestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h3 class="text-lg font-bold text-[#2a6f97] mb-4">Add Guest</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-semibold mb-1">First Name</label>
+                    <input type="text" id="modalFirstName" class="w-full border rounded p-2" required>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Last Name</label>
+                    <input type="text" id="modalLastName" class="w-full border rounded p-2" required>
+                </div>
+                <div class="col-span-2">
+                    <label class="block font-semibold mb-1">Email</label>
+                    <input type="email" id="modalEmail" class="w-full border rounded p-2">
+                </div>
+                <div class="col-span-2">
+                    <label class="block font-semibold mb-1">Phone (Optional)</label>
+                    <input type="text" id="modalPhone" class="w-full border rounded p-2">
+                </div>
+                <div class="col-span-2">
+                    <label class="block font-semibold mb-1">Guest Type</label>
+                    <select id="modalGuestType" class="w-full border rounded p-2">
+                        <option value="adult">Adult</option>
+                        <option value="child">Child</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end gap-2">
+                <button id="modalCancel" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                    Cancel
+                </button>
+                <button id="modalSave" class="bg-[#2a6f97] hover:bg-[#1a4d6e] text-white font-bold py-2 px-4 rounded">
+                    Save Guest
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    const pricePerNight = {{ room.price_per_night }};
+    const maxAdults = parseInt(document.getElementById("capacityAdults").value);
+    const maxChildren = parseInt(document.getElementById("capacityChildren").value);
+    const rooms = parseInt(document.querySelector('input[name="rooms"]').value) || 1;
+    const checkin = "{{ checkin }}";
+    const checkout = "{{ checkout }}";
+    const totalAdults = parseInt("{{ adults }}") || 0;
+    const totalChildren = parseInt("{{ children }}") || 0;
+    const selectedMeals = {{ selected_meals|safe }};
+    let guestList = [
+        {% if request.user.is_authenticated %}
+            {
+                type: "adult",
+                index: 0,
+                username: "{{ request.user.username|escapejs }}",
+                firstName: "{{ request.user.guest_profile.first_name|escapejs }}",
+                lastName: "{{ request.user.guest_profile.last_name|escapejs }}",
+                email: "{{ request.user.guest_profile.email|default:request.user.email|escapejs }}",
+                phone: "{{ request.user.guest_profile.phone|default_if_none:''|escapejs }}"
+            }
+        {% else %}
+            { type: "adult", index: 0, username: "", firstName: "", lastName: "", email: "", phone: "" }
+        {% endif %}
+    ];
+    let isPrimaryGuestInBooking = {% if request.user.is_authenticated %}true{% else %}false{% endif %};
+
+    function updateGuestList() {
+        const guestListDiv = document.getElementById("guestList");
+        const requiredAdults = isPrimaryGuestInBooking ? totalAdults - 1 : totalAdults;
+        const addedAdults = guestList.filter(g => g.type === "adult").length - 1; // Exclude primary guest
+        const addedChildren = guestList.filter(g => g.type === "child").length;
+
+        if (guestList.length <= 1 && !isPrimaryGuestInBooking) {
+            guestListDiv.innerHTML = "<p>No additional guests added.</p>";
+            return;
+        }
+
+        let html = "<ul class='list-disc pl-5'>";
+        if (isPrimaryGuestInBooking && guestList[0].firstName && guestList[0].lastName) {
+            html += `<li>Adult: ${guestList[0].firstName} ${guestList[0].lastName}</li>`;
+        }
+        guestList.forEach((guest, index) => {
+            if (index === 0 && isPrimaryGuestInBooking) return; // Skip primary guest if in booking
+            const name = `${guest.firstName} ${guest.lastName}`.trim();
+            if (name) {
+                html += `<li>${guest.type.charAt(0).toUpperCase() + guest.type.slice(1)}: ${name}</li>`;
+            }
+        });
+        html += "</ul>";
+        guestListDiv.innerHTML = html;
+
+        // Update guest error dynamically
+        const guestError = document.getElementById("guestError");
+        if (addedAdults < requiredAdults || addedChildren < totalChildren) {
+            guestError.innerText = `Please add all required guests. Needed: ${requiredAdults} adult(s), ${totalChildren} child(ren).`;
+            guestError.classList.remove("hidden");
+        } else {
+            guestError.classList.add("hidden");
+        }
+    }
+
+    function calculateSummary() {
+        const checkinDate = new Date(checkin);
+        const checkoutDate = new Date(checkout);
+
+        const errorBox = document.getElementById("capacityError");
+        if (totalAdults > maxAdults * rooms || totalChildren > maxChildren * rooms) {
+            errorBox.innerText = `Exceeds room capacity. Max: ${maxAdults * rooms} adults, ${maxChildren * rooms} children.`;
+            errorBox.classList.remove("hidden");
+            return;
+        } else {
+            errorBox.classList.add("hidden");
+        }
+
+        if (checkinDate && checkoutDate && checkoutDate > checkinDate) {
+            const nights = Math.ceil((checkoutDate - checkinDate) / (1000 * 60 * 60 * 24));
+            const roomTotal = pricePerNight * nights * rooms;
+
+            let mealTotal = 0;
+            let mealDetails = "";
+            const mealCheckboxes = document.querySelectorAll(".meal-checkbox:checked");
+            mealCheckboxes.forEach(cb => {
+                const mealPrice = parseFloat(cb.dataset.price);
+                const mealName = cb.nextElementSibling.textContent.split(" (")[0];
+                mealTotal += mealPrice * nights * rooms;
+                mealDetails += `<p>${mealName} (${nights} nights x ${rooms} room${rooms > 1 ? "s" : ""}): <span class="font-semibold">KSh ${(mealPrice * nights * rooms).toFixed(2)}</span></p>`;
+            });
+
+            const totalPrice = roomTotal + mealTotal;
+            const vat = totalPrice * 0.18;
+            const grandTotal = totalPrice + vat;
+
+            document.getElementById("summary").innerHTML = `
+                <p><i class="fa fa-calendar"></i> Stay Duration: <span class="font-semibold">${nights} night${nights > 1 ? "s" : ""}</span></p>
+                <p><i class="fa fa-user"></i> Adults: <span class="font-semibold">${totalAdults}</span></p>
+                <p><i class="fa fa-child"></i> Children: <span class="font-semibold">${totalChildren}</span></p>
+                <p><i class="fa fa-door-open"></i> Rooms: <span class="font-semibold">${rooms}</span></p>
+                <hr class="my-2">
+                <p>Room Price (${nights} night${nights > 1 ? "s" : ""} x ${rooms} room${rooms > 1 ? "s" : ""}): <span class="font-semibold">KSh ${roomTotal.toFixed(2)}</span></p>
+                ${mealDetails || "<p>Meals: <span class='font-semibold'>KSh 0.00</span></p>"}
+                <p>VAT (18%): <span class="font-semibold">KSh ${vat.toFixed(2)}</span></p>
+                <hr class="my-2">
+                <p class="text-lg font-bold">Grand Total: <span class="text-[#2a6f97]">KSh ${grandTotal.toFixed(2)}</span></p>
+            `;
+        }
+    }
+
+    // Handle modal interactions
+    {% if adults|add:children >= 2 %}
+    const modal = document.getElementById("guestModal");
+    const addGuestButton = document.getElementById("addGuestButton");
+    const modalCancel = document.getElementById("modalCancel");
+    const modalSave = document.getElementById("modalSave");
+    const guestError = document.getElementById("guestError");
+
+    addGuestButton.addEventListener("click", () => {
+        const addedAdults = guestList.filter(g => g.type === "adult").length - 1; // Exclude primary guest
+        const addedChildren = guestList.filter(g => g.type === "child").length;
+        const maxAllowedAdults = isPrimaryGuestInBooking ? totalAdults - 1 : totalAdults;
+        const maxAllowedChildren = totalChildren;
+
+        if (addedAdults >= maxAllowedAdults && addedChildren >= maxAllowedChildren) {
+            guestError.innerText = "Cannot add more guests than selected.";
+            guestError.classList.remove("hidden");
+            return;
+        }
+
+        modal.classList.remove("hidden");
+        guestError.classList.add("hidden");
+        document.getElementById("modalFirstName").value = "";
+        document.getElementById("modalLastName").value = "";
+        document.getElementById("modalEmail").value = "";
+        document.getElementById("modalPhone").value = "";
+        document.getElementById("modalGuestType").value = addedAdults < maxAllowedAdults ? "adult" : "child";
+    });
+
+    modalCancel.addEventListener("click", () => {
+        modal.classList.add("hidden");
+    });
+
+    modalSave.addEventListener("click", () => {
+        const firstName = document.getElementById("modalFirstName").value;
+        const lastName = document.getElementById("modalLastName").value;
+        const email = document.getElementById("modalEmail").value;
+        const phone = document.getElementById("modalPhone").value;
+        const guestType = document.getElementById("modalGuestType").value;
+        const addedAdults = guestList.filter(g => g.type === "adult").length - 1; // Exclude primary guest
+        const addedChildren = guestList.filter(g => g.type === "child").length;
+        const maxAllowedAdults = isPrimaryGuestInBooking ? totalAdults - 1 : totalAdults;
+        const maxAllowedChildren = totalChildren;
+
+        if (!firstName || !lastName || (guestType === "adult" && !email)) {
+            alert("Please fill in all required fields.");
+            return;
+        }
+
+        if (guestType === "adult" && addedAdults >= maxAllowedAdults) {
+            alert("Cannot add more adult guests.");
+            return;
+        }
+
+        if (guestType === "child" && addedChildren >= maxAllowedChildren) {
+            alert("Cannot add more child guests.");
+            return;
+        }
+
+        const guestIndex = guestList.length;
+        guestList.push({ type: guestType, index: guestIndex, firstName, lastName, email, phone });
+
+        const form = document.getElementById("bookingForm");
+        const prefix = guestType === "adult" ? `adult_${addedAdults + 1}` : `child_${addedChildren + 1}`;
+        form.insertAdjacentHTML("beforeend", `
+            <input type="hidden" name="${prefix}_first" value="${firstName}">
+            <input type="hidden" name="${prefix}_last" value="${lastName}">
+            <input type="hidden" name="${prefix}_email" value="${email}">
+            <input type="hidden" name="${prefix}_phone" value="${phone}">
+        `);
+
+        updateGuestList();
+        modal.classList.add("hidden");
+    });
+    {% endif %}
+
+    // Update guest list on primary guest input
+    {% if not request.user.is_authenticated %}
+    document.querySelectorAll(".guest-input").forEach(input => {
+        input.addEventListener("input", () => {
+            const guest = guestList[0];
+            guest.username = document.querySelector('input[name="username"]').value;
+            guest.firstName = document.querySelector('input[name="first_name"]').value;
+            guest.lastName = document.querySelector('input[name="last_name"]').value;
+            guest.email = document.querySelector('input[name="email"]').value;
+            guest.phone = document.querySelector('input[name="phone"]').value;
+            updateGuestList();
+        });
+    });
+    {% endif %}
+
+    // Update isPrimaryGuestInBooking
+    document.getElementById("isPrimaryGuestInBooking").addEventListener("change", (e) => {
+        isPrimaryGuestInBooking = e.target.checked;
+        updateGuestList();
+    });
+
+    // Form submission validation
+    document.getElementById("bookingForm").addEventListener("submit", function(e) {
+        const guestError = document.getElementById("guestError");
+        const adultsInput = parseInt(document.querySelector('input[name="adults"]').value) || 0;
+        const childrenInput = parseInt(document.querySelector('input[name="children"]').value) || 0;
+        const roomsInput = parseInt(document.querySelector('input[name="rooms"]').value) || 1;
+        const addedAdults = guestList.filter(g => g.type === "adult").length - 1; // Exclude primary guest
+        const addedChildren = guestList.filter(g => g.type === "child").length;
+        const requiredAdults = isPrimaryGuestInBooking ? adultsInput - 1 : adultsInput;
+        const requiredChildren = childrenInput;
+
+        {% if not request.user.is_authenticated %}
+        const username = document.querySelector('input[name="username"]').value;
+        const password = document.getElementById("password").value;
+        const confirmPassword = document.getElementById("confirmPassword").value;
+        const passwordError = document.getElementById("passwordError");
+
+        if (!username) {
+            e.preventDefault();
+            guestError.innerText = "Username is required for primary guest.";
+            guestError.classList.remove("hidden");
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            e.preventDefault();
+            passwordError.innerText = "Passwords do not match.";
+            passwordError.classList.remove("hidden");
+            return;
+        }
+
+        if (!password || password.length < 8) {
+            e.preventDefault();
+            passwordError.innerText = "Password must be at least 8 characters long.";
+            passwordError.classList.remove("hidden");
+            return;
+        }
+        {% endif %}
+
+        if (adultsInput > maxAdults * roomsInput || childrenInput > maxChildren * roomsInput) {
+            e.preventDefault();
+            guestError.innerText = "Booking exceeds room capacity!";
+            guestError.classList.remove("hidden");
+            return;
+        }
+
+        if (addedAdults < requiredAdults || addedChildren < requiredChildren) {
+            e.preventDefault();
+            guestError.innerText = `Please add all required guests. Needed: ${requiredAdults} adult(s), ${requiredChildren} child(ren).`;
+            guestError.classList.remove("hidden");
+            return;
+        }
+
+        {% if not request.user.is_authenticated %}
+        passwordError.classList.add("hidden");
+        {% endif %}
+        guestError.classList.add("hidden");
+    });
+
+    // Update summary on meal selection
+    document.querySelectorAll(".meal-checkbox").forEach(cb => cb.addEventListener("change", calculateSummary));
+
+    calculateSummary();
+    updateGuestList();
+</script>
+{% endblock %}

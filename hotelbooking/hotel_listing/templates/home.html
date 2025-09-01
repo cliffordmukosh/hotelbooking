@@ -1,0 +1,299 @@
+{% load static %}
+{% load custom_tags %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hotel Listings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-[#2a6f97] min-h-screen">
+
+    <!-- Navbar -->
+    <nav class="bg-[#1a4d6e] p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-white text-2xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-hotel"></i> Hotel Booking
+            </h1>
+
+            <!-- Auth Buttons -->
+            {% if user.is_authenticated %}
+                <div class="flex items-center gap-2">
+                    <a href="{% url 'dashboard' %}" 
+                       class="text-white font-semibold px-4 py-2 rounded hover:bg-blue-700 transition">
+                        <i class="fa fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="{% url 'dashboard' %}" 
+                       class="text-white font-semibold px-4 py-2 rounded hover:bg-blue-700 transition">
+                        <i class="fa fa-book"></i> My Bookings
+                    </a>
+                    <a href="{% url 'logout' %}" 
+                       class="text-white font-semibold px-4 py-2 rounded hover:bg-blue-700 transition">
+                        <i class="fa fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            {% else %}
+                <a href="{% url 'login' %}" 
+                   class="bg-white text-[#1a4d6e] font-semibold px-4 py-2 rounded hover:bg-gray-200 transition">
+                    <i class="fa fa-sign-in-alt"></i> Login
+                </a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Search Form -->
+    <div class="container mx-auto mt-6 px-4">
+        {% if error %}
+            <p class="text-red-600 text-sm mb-4">{{ error }}</p>
+        {% endif %}
+        <form method="get" action="{% url 'home' %}" id="searchForm" 
+              class="bg-white p-6 rounded-lg shadow-lg">
+            <!-- Top Row -->
+            <div class="grid grid-cols-6 gap-4">
+                <!-- Dates -->
+                <div>
+                    <label class="block font-semibold mb-1">Check-in</label>
+                    <input type="date" name="checkin" id="checkin"
+                           value="{{ request.GET.checkin }}" 
+                           class="w-full border rounded p-2" required>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Check-out</label>
+                    <input type="date" name="checkout" id="checkout"
+                           value="{{ request.GET.checkout }}" 
+                           class="w-full border rounded p-2" required>
+                </div>
+
+                <!-- Adults -->
+                <div>
+                    <label class="block font-semibold mb-1">Adults</label>
+                    <select name="adults" id="adults" class="w-full border rounded p-2">
+                        {% for i in 1|to:10 %}
+                            <option value="{{ i }}" {% if request.GET.adults == i|stringformat:"s" %}selected{% endif %}>
+                                {{ i }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Children -->
+                <div>
+                    <label class="block font-semibold mb-1">Children</label>
+                    <select name="children" id="children" class="w-full border rounded p-2">
+                        {% for i in 0|to:10 %}
+                            <option value="{{ i }}" {% if request.GET.children == i|stringformat:"s" %}selected{% endif %}>
+                                {{ i }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Rooms -->
+                <div>
+                    <label class="block font-semibold mb-1">Rooms</label>
+                    <select name="rooms" id="rooms" class="w-full border rounded p-2">
+                        {% for i in 1|to:5 %}
+                            <option value="{{ i }}" {% if request.GET.rooms == i|stringformat:"s" %}selected{% endif %}>
+                                {{ i }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Search Btn -->
+                <div class="flex items-end">
+                    <button type="submit" 
+                            class="w-full flex items-center justify-center gap-2 bg-[#2a6f97] hover:bg-[#1a4d6e] text-white font-bold py-2 px-4 rounded">
+                        <i class="fa fa-search"></i> Search
+                    </button>
+                </div>
+            </div>
+
+            <!-- Small Filters -->
+            <div class="grid grid-cols-3 gap-4 mt-4">
+                <!-- Room Type -->
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Room Type</label>
+                    <select name="room_type" class="w-full border rounded p-2 text-sm">
+                        <option value="">Any</option>
+                        <option value="Single" {% if request.GET.room_type == "Single" %}selected{% endif %}>Single</option>
+                        <option value="Double" {% if request.GET.room_type == "Double" %}selected{% endif %}>Double</option>
+                        <option value="Suite" {% if request.GET.room_type == "Suite" %}selected{% endif %}>Suite</option>
+                    </select>
+                </div>
+
+                <!-- Bed Type -->
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Bed Type</label>
+                    <select name="bed_type" class="w-full border rounded p-2 text-sm">
+                        <option value="">Any</option>
+                        <option value="Single" {% if request.GET.bed_type == "Single" %}selected{% endif %}>Single</option>
+                        <option value="Double" {% if request.GET.bed_type == "Double" %}selected{% endif %}>Double</option>
+                        <option value="Two Singles" {% if request.GET.bed_type == "Two Singles" %}selected{% endif %}>Two Singles</option>
+                    </select>
+                </div>
+
+                <!-- Filter Button -->
+                <div class="flex items-end">
+                    <button type="submit" 
+                            class="w-full bg-gray-700 hover:bg-gray-900 text-white font-bold py-2 px-4 rounded text-sm">
+                        <i class="fa fa-filter"></i> Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Results -->
+    <div class="container mx-auto mt-8 px-4">
+        <h2 class="text-white text-xl font-semibold mb-4 flex items-center gap-2">
+            <i class="fa fa-bed"></i> Available Rooms
+        </h2>
+        <div class="grid md:grid-cols-3 gap-6">
+            {% for room in rooms %}
+                <div class="bg-white rounded-lg shadow-lg p-5 flex flex-col justify-between hover:shadow-xl transition">
+                    <div>
+                        {% if room.image %}
+                            <img src="{{ room.image.url }}" alt="{{ room.room_type }} Image" class="w-full h-48 object-cover rounded-lg mb-4">
+                        {% else %}
+                            <img src="/media/rooms/default-room.jpg" alt="Default Room Image" class="w-full h-48 object-cover rounded-lg mb-4">
+                        {% endif %}
+                        <h3 class="text-xl font-bold text-[#2a6f97] mb-2">
+                            Room {{ room.room_number }} - {{ room.room_type }}
+                        </h3>
+                        <p class="text-gray-700">
+                            <i class="fa fa-bed"></i> {{ room.bed_type }} | 
+                            <i class="fa fa-user"></i> {{ room.capacity_adults }} Adults | 
+                            <i class="fa fa-child"></i> {{ room.capacity_children }} Children
+                        </p>
+                        <p class="mt-2 font-semibold text-gray-900">
+                            <i class="fa fa-money-bill-wave"></i> KSh {{ room.price_per_night|floatformat:2 }} / night
+                        </p>
+                        {% if room.description %}
+                            <p class="mt-2 text-gray-600 text-sm">{{ room.description }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="mt-4">
+                        <a href="{% url 'book_room' room.id %}?{% if request.GET.checkin %}checkin={{ request.GET.checkin }}&{% endif %}{% if request.GET.checkout %}checkout={{ request.GET.checkout }}&{% endif %}{% if request.GET.adults %}adults={{ request.GET.adults }}&{% endif %}{% if request.GET.children %}children={{ request.GET.children }}{% endif %}" 
+                           class="block text-center bg-[#2a6f97] hover:bg-[#1a4d6e] text-white font-bold py-2 px-4 rounded book-now-link">
+                            <i class="fa fa-calendar-check"></i> Book Now
+                        </a>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-white">No rooms available for the selected criteria.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-[#1a4d6e] text-white py-6 mt-8">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- About Section -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">About Hotel Booking</h3>
+                    <p class="text-sm">
+                        Discover the best hotels and book your perfect stay with ease. 
+                        We offer a seamless booking experience with a wide range of accommodations 
+                        to suit every traveler's needs.
+                    </p>
+                </div>
+                <!-- Quick Links -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="text-sm space-y-2">
+                        <li><a href="{% url 'home' %}" class="hover:underline">Home</a></li>
+                        {% if user.is_authenticated %}
+                            <li><a href="{% url 'dashboard' %}" class="hover:underline">Dashboard</a></li>
+                            <li><a href="{% url 'dashboard' %}" class="hover:underline">My Bookings</a></li>
+                            <li><a href="{% url 'logout' %}" class="hover:underline">Logout</a></li>
+                        {% else %}
+                            <li><a href="{% url 'login' %}" class="hover:underline">Login</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <!-- Contact Info -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Contact Us</h3>
+                    <p class="text-sm">
+                        <i class="fa fa-envelope"></i> support@hotelbooking.com<br>
+                        <i class="fa fa-phone"></i> +254 123 456 789<br>
+                        <i class="fa fa-map-marker-alt"></i> Nairobi, Kenya
+                    </p>
+                </div>
+            </div>
+            <div class="mt-6 text-center text-sm">
+                <p>&copy; {% now "Y" %} Hotel Booking. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set minimum date to today for both datepickers
+            const today = new Date().toISOString().split('T')[0];
+            const checkinInput = document.getElementById('checkin');
+            const checkoutInput = document.getElementById('checkout');
+
+            checkinInput.setAttribute('min', today);
+            checkoutInput.setAttribute('min', today);
+
+            // Ensure checkout is not before check-in
+            checkinInput.addEventListener('change', function() {
+                checkoutInput.setAttribute('min', checkinInput.value);
+            });
+
+            const searchForm = document.getElementById('searchForm');
+            const bookNowLinks = document.querySelectorAll('.book-now-link');
+
+            function updateBookNowLinks() {
+                const checkin = checkinInput.value;
+                const checkout = checkoutInput.value;
+                const adults = document.getElementById('adults').value;
+
+                bookNowLinks.forEach(link => {
+                    // Update href dynamically
+                    const baseUrl = link.getAttribute('href').split('?')[0];
+                    const params = [];
+                    if (checkin) params.push(`checkin=${checkin}`);
+                    if (checkout) params.push(`checkout=${checkout}`);
+                    if (adults) params.push(`adults=${adults}`);
+                    const children = document.getElementById('children').value;
+                    if (children) params.push(`children=${children}`);
+                    link.setAttribute('href', `${baseUrl}?${params.join('&')}`);
+                });
+            }
+
+            // Update links on page load
+            updateBookNowLinks();
+
+            // Update links on form input changes
+            searchForm.addEventListener('input', updateBookNowLinks);
+
+            // Disable buttons only after invalid form submission
+            searchForm.addEventListener('submit', function(e) {
+                const checkin = checkinInput.value;
+                const checkout = checkoutInput.value;
+                const adults = document.getElementById('adults').value;
+                if (!checkin || !checkout || !adults) {
+                    e.preventDefault();
+                    alert('Please fill in check-in, check-out, and adults fields.');
+                    bookNowLinks.forEach(link => {
+                        link.classList.add('opacity-50', 'cursor-not-allowed');
+                        link.setAttribute('disabled', 'disabled');
+                        link.removeAttribute('href');
+                    });
+                } else {
+                    bookNowLinks.forEach(link => {
+                        link.classList.remove('opacity-50', 'cursor-not-allowed');
+                        link.removeAttribute('disabled');
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

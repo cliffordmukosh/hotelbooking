@@ -1,0 +1,54 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Hotel Booking{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+
+    <!-- Extra Styles -->
+    <style>
+        body {
+            @apply bg-[#2a6f97] min-h-screen;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="bg-[#1a4d6e] p-4 shadow-md fixed top-0 left-0 right-0 z-50">
+        <div class="container mx-auto flex justify-between items-center px-4">
+            <h1 class="text-white text-2xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-hotel"></i> Hotel Booking
+            </h1>
+            <div>
+                <a href="{% url 'home' %}" class="text-white hover:text-gray-200 px-3">
+                    <i class="fa fa-home"></i> Home
+                </a>
+                <a href="{% url 'dashboard' %}" class="text-white hover:text-gray-200 px-3">
+                    <i class="fa fa-calendar"></i> My Bookings
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <main class="pt-20 container mx-auto px-4">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[#1a4d6e] text-white text-center py-4 mt-10">
+        <p>&copy; {{ now|date:"Y" }} Hotel Booking. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>

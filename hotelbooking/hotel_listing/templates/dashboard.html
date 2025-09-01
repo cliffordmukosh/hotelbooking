@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Hotel Booking{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-8 px-4 min-h-[calc(90vh-3rem)] flex flex-col">
+    <h2 class="text-2xl font-bold mb-6 text-white">
+        Welcome, {{ guest.first_name }} {{ guest.last_name }}
+    </h2>
+
+    <div class="flex-grow overflow-x-auto bg-white rounded-lg shadow-md">
+        <table class="w-full text-sm text-left border border-gray-200">
+            <thead class="bg-[#1a4d6e] text-white">
+                <tr>
+                    <th class="px-4 py-2">ID</th>
+                    <th class="px-4 py-2">Guest</th>
+                    <th class="px-4 py-2">Room</th>
+                    <th class="px-4 py-2">Dates</th>
+                    <th class="px-4 py-2">Booking Status</th>
+                    <th class="px-4 py-2">Payment Status</th>
+                    <th class="px-4 py-2">Total Price</th>
+                    <th class="px-4 py-2">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bookings %}
+                <tr class="border-t hover:bg-gray-100">
+                    <td class="px-4 py-2">{{ booking.id }}</td>
+                    <td class="px-4 py-2">
+                        {{ booking.primary_guest.first_name }} {{ booking.primary_guest.last_name }}
+                    </td>
+                    <td class="px-4 py-2">
+                        {{ booking.room.room_number }} ({{ booking.room.room_type }})
+                    </td>
+                    <td class="px-4 py-2">
+                        {{ booking.start_date }} → {{ booking.end_date }}
+                    </td>
+                    <td class="px-4 py-2">
+                        <span class="px-2 py-1 rounded text-white text-xs 
+                            {% if booking.booking_status == 'Confirmed' %} bg-green-600
+                            {% elif booking.booking_status == 'Pending' %} bg-yellow-500
+                            {% elif booking.booking_status == 'Cancelled' %} bg-red-600
+                            {% else %} bg-gray-500 {% endif %}">
+                            {{ booking.booking_status }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2">
+                        <span class="px-2 py-1 rounded text-white text-xs
+                            {% if booking.payment_status == 'Paid' %} bg-green-600
+                            {% elif booking.payment_status == 'Partial' %} bg-yellow-500
+                            {% elif booking.payment_status == 'Unpaid' %} bg-red-600
+                            {% else %} bg-gray-500 {% endif %}">
+                            {{ booking.payment_status|default:"Unpaid" }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2">KSh {{ booking.total_price }}</td>
+                    <td class="px-4 py-2 flex gap-2">
+                        <a href="{% url 'booking_details' booking.id %}" 
+                           class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-xs">
+                            <i class="fa fa-info-circle"></i> View Details
+                        </a>
+                        <a href="{% url 'add_payment' booking.id %}" 
+                           class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-xs">
+                            <i class="fa fa-dollar-sign"></i> Add Payment
+                        </a>
+                        {% if booking.payment_status == 'Paid' %}
+                        <a href="{% url 'print_receipt' booking.id %}" 
+                           class="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 text-xs" target="_blank">
+                            <i class="fa fa-print"></i> Print Receipt
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center px-4 py-3 text-gray-500">No bookings found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if bookings.has_other_pages %}
+    <div class="mt-4 flex justify-center items-center space-x-2">
+        {% if bookings.has_previous %}
+        <a href="?page={{ bookings.previous_page_number }}" 
+           class="px-3 py-1 bg-[#1a4d6e] text-white rounded hover:bg-blue-700">
+            Previous
+        </a>
+        {% endif %}
+
+        {% for num in bookings.paginator.page_range %}
+        {% if bookings.number == num %}
+        <span class="px-3 py-1 bg-[#1a4d6e] text-white rounded font-bold">
+            {{ num }}
+        </span>
+        {% elif num > bookings.number|add:'-3' and num < bookings.number|add:'3' %}
+        <a href="?page={{ num }}" 
+           class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+            {{ num }}
+        </a>
+        {% endif %}
+        {% endfor %}
+
+        {% if bookings.has_next %}
+        <a href="?page={{ bookings.next_page_number }}" 
+           class="px-3 py-1 bg-[#1a4d6e] text-white rounded hover:bg-blue-700">
+            Next
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Ensure footer stays at bottom -->
+<style>
+    body {
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    footer {
+        margin-top: auto;
+    }
+</style>
+{% endblock %}

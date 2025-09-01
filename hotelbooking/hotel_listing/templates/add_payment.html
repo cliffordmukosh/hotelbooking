@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Add Payment | Hotel Booking{% endblock %}
+
+{% block content %}
+<h3 class="text-xl font-bold mb-4 text-white">
+    Add Payment for Booking #{{ booking.id }}
+</h3>
+
+<div class="bg-white shadow-md rounded-lg p-6">
+    <p class="mb-2">
+        <strong>Guest:</strong> {{ booking.primary_guest.first_name }} {{ booking.primary_guest.last_name }}
+    </p>
+    <p class="mb-2">
+        <strong>Room:</strong> {{ booking.room.room_number }}
+    </p>
+    <p class="mb-4">
+        <strong>Total Price:</strong> ${{ booking.total_price }}
+    </p>
+
+    {% if booking.payments.exists %}
+        <!-- If payment already exists -->
+        {% with payment=booking.payments.last %}
+            <div class="p-4 bg-gray-100 rounded border border-gray-300">
+                <p><strong>Amount Paid:</strong> ${{ payment.amount }}</p>
+                <p><strong>Method:</strong> {{ payment.payment_method }}</p>
+                <p><strong>Transaction Code:</strong> {{ payment.transaction_id|default:"N/A" }}</p>
+                <p>
+                    <strong>Status:</strong>
+                    <span class="px-2 py-1 rounded text-white text-xs
+                        {% if payment.payment_status == 'Completed' %} bg-green-600
+                        {% elif payment.payment_status == 'Pending' %} bg-yellow-500
+                        {% elif payment.payment_status == 'Failed' %} bg-red-600
+                        {% elif payment.payment_status == 'Refunded' %} bg-blue-600
+                        {% endif %}">
+                        {{ payment.payment_status }}
+                    </span>
+                </p>
+            </div>
+            <p class="mt-4 text-red-600 font-medium">⚠ Payment already exists for this booking.</p>
+        {% endwith %}
+
+        <div class="mt-4">
+            <a href="{% url 'dashboard' %}" 
+               class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center gap-2">
+                <i class="fa fa-arrow-left"></i>
+                <span>Back</span>
+            </a>
+        </div>
+    {% else %}
+        <!-- Payment Form -->
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+
+            <!-- Amount -->
+            <div>
+                <label for="amount" class="block text-sm font-medium mb-1">Amount</label>
+                <input type="number" step="0.01" name="amount" id="amount" required
+                       class="w-full border border-gray-300 rounded px-3 py-2 focus:ring focus:ring-blue-200"
+                       value="{{ booking.total_price }}">
+            </div>
+
+            <!-- Payment Method -->
+            <div>
+                <label for="method" class="block text-sm font-medium mb-1">Payment Method</label>
+                <select name="method" id="method" required
+                        class="w-full border border-gray-300 rounded px-3 py-2 focus:ring focus:ring-blue-200">
+                    <option value="">-- Select Method --</option>
+                    <option value="Credit Card">Credit Card</option>
+                    <option value="Debit Card">Debit Card</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Online Transfer">Online Transfer</option>
+                </select>
+            </div>
+
+            <!-- Transaction Code (only visible if Cash) -->
+            <div id="transaction-code-field" class="hidden">
+                <label for="transaction_code" class="block text-sm font-medium mb-1">Transaction Code</label>
+                <input type="text" name="transaction_code" id="transaction_code"
+                       class="w-full border border-gray-300 rounded px-3 py-2 focus:ring focus:ring-blue-200">
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2">
+                    <i class="fa fa-check"></i>
+                    <span>Submit Payment</span>
+                </button>
+                <a href="{% url 'dashboard' %}"
+                   class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center gap-2">
+                    <i class="fa fa-arrow-left"></i>
+                    <span>Back</span>
+                </a>
+            </div>
+        </form>
+    {% endif %}
+</div>
+
+<!-- Script to toggle transaction code -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const methodSelect = document.getElementById("method");
+        const transactionField = document.getElementById("transaction-code-field");
+        const transactionInput = document.getElementById("transaction_code");
+
+        if (methodSelect) {
+            function toggleTransactionField() {
+                if (methodSelect.value === "Cash") {
+                    transactionField.classList.remove("hidden");
+                    transactionInput.setAttribute("required", "required");
+                } else {
+                    transactionField.classList.add("hidden");
+                    transactionInput.removeAttribute("required");
+                    transactionInput.value = "";
+                }
+            }
+            toggleTransactionField();
+            methodSelect.addEventListener("change", toggleTransactionField);
+        }
+    });
+</script>
+{% endblock %}
