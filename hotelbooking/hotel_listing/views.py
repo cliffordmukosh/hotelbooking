@@ -365,12 +365,6 @@ def dashboard(request):
 
     return render(request, "dashboard.html", {"guest": guest, "bookings": bookings})
 
-# @login_required
-# from django.contrib.auth.decorators import login_required
-# from django.shortcuts import render, redirect, get_object_or_404
-# from django.contrib import messages
-# from django.db.models import Sum
-# from .models import Booking, Guest
 
 @login_required
 def booking_details(request, booking_id):
@@ -588,3 +582,76 @@ def add_payment(request, booking_id):
             return render(request, "add_payment.html", {"booking": booking})
 
     return render(request, "add_payment.html", {"booking": booking})
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .forms import GuestProfileForm
+from .models import Guest
+
+@login_required
+def profile_view(request):
+    try:
+        guest = request.user.guest_profile
+    except Guest.DoesNotExist:
+        guest = Guest.objects.create(
+            user=request.user,
+            first_name=request.user.username,
+            last_name='',
+            email=request.user.email
+        )
+
+    if request.method == 'POST':
+        form = GuestProfileForm(request.POST, instance=guest)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your profile has been updated successfully.')
+            return redirect('profile')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = GuestProfileForm(instance=guest)
+
+    return render(request, 'profile.html', {'form': form})
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .forms import GuestProfileForm, CustomPasswordChangeForm
+from .models import Guest
+
+@login_required
+def profile_view(request):
+    try:
+        guest = request.user.guest_profile
+    except Guest.DoesNotExist:
+        guest = Guest.objects.create(
+            user=request.user,
+            first_name=request.user.username,
+            last_name='',
+            email=request.user.email
+        )
+    if request.method == 'POST':
+        form = GuestProfileForm(request.POST, instance=guest)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your profile has been updated successfully.')
+            return redirect('profile')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = GuestProfileForm(instance=guest)
+    return render(request, 'profile.html', {'form': form})
+
+@login_required
+def password_change_view(request):
+    if request.method == 'POST':
+        form = CustomPasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your password has been changed successfully.')
+            return redirect('profile')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = CustomPasswordChangeForm(user=request.user)
+    return render(request, 'change_password.html', {'form': form})

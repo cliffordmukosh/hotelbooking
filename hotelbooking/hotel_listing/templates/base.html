@@ -18,6 +18,13 @@
         body {
             @apply bg-[#2a6f97] min-h-screen;
         }
+        /* Ensure dropdown is hidden by default */
+        #profile-dropdown {
+            display: none;
+        }
+        #profile-dropdown.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -28,13 +35,45 @@
             <h1 class="text-white text-2xl font-bold flex items-center gap-2">
                 <i class="fa-solid fa-hotel"></i> Hotel Booking
             </h1>
-            <div>
-                <a href="{% url 'home' %}" class="text-white hover:text-gray-200 px-3">
+            <div class="flex items-center gap-4">
+                <a href="{% url 'home' %}" class="text-white hover:text-gray-200 px-3 flex items-center gap-2">
                     <i class="fa fa-home"></i> Home
                 </a>
-                <a href="{% url 'dashboard' %}" class="text-white hover:text-gray-200 px-3">
+                <a href="{% url 'dashboard' %}" class="text-white hover:text-gray-200 px-3 flex items-center gap-2">
                     <i class="fa fa-calendar"></i> My Bookings
                 </a>
+                {% if user.is_authenticated %}
+                <div class="relative">
+                    <button id="profile-btn" 
+                            class="text-white hover:text-gray-200 px-3 flex items-center gap-2"
+                            aria-expanded="false"
+                            aria-label="Profile menu">
+                        <i class="fa fa-user"></i> My Profile
+                    </button>
+                    <div id="profile-dropdown" 
+                         class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
+                        <div class="px-4 py-2 text-gray-700 border-b">
+                            {% if user.guest_profile %}
+                                {{ user.guest_profile.first_name }} {{ user.guest_profile.last_name }}
+                            {% else %}
+                                {{ user.username }}
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'profile' %}" 
+                           class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                            View Profile
+                        </a>
+                        <a href="{% url 'password_change' %}" 
+                           class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                            Change Password
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <a href="{% url 'login' %}" class="text-white hover:text-gray-200 px-3 flex items-center gap-2">
+                    <i class="fa fa-sign-in-alt"></i> Login
+                </a>
+                {% endif %}
             </div>
         </div>
     </nav>
@@ -50,5 +89,26 @@
         <p>&copy; {{ now|date:"Y" }} Hotel Booking. All rights reserved.</p>
     </footer>
 
+    <!-- JavaScript for Dropdown -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const profileBtn = document.getElementById('profile-btn');
+            const dropdown = document.getElementById('profile-dropdown');
+
+            profileBtn.addEventListener('click', () => {
+                const isExpanded = profileBtn.getAttribute('aria-expanded') === 'true';
+                profileBtn.setAttribute('aria-expanded', !isExpanded);
+                dropdown.classList.toggle('active');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (event) => {
+                if (!profileBtn.contains(event.target) && !dropdown.contains(event.target)) {
+                    dropdown.classList.remove('active');
+                    profileBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

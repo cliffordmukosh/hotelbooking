@@ -16,6 +16,9 @@ urlpatterns = [
     path('booking/<int:booking_id>/', views.booking_details, name='booking_details'),
     path('receipt/<int:booking_id>/', views.print_receipt, name='print_receipt'),
     
+    path('profile/', views.profile_view, name='profile'),
+     path('password_change/', views.password_change_view, name='password_change'),  
+    
     
 ]
 
