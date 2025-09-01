@@ -1,22 +1,46 @@
+# Standard library
+import datetime
+from datetime import datetime as dt  # Alias datetime class to avoid confusion
+from decimal import Decimal
+
+# Third-party
+import pdfkit
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+    HRFlowable,
+)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
+
+# Django
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, F
 from django.utils.dateparse import parse_date
-from decimal import Decimal
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Room, Booking, Guest, BookingGuest, Meal, MealPreference, Payment
 from django.template.loader import render_to_string
 from django.http import HttpResponse
-import pdfkit
-import datetime
 
-from django.shortcuts import render
-from django.db.models import Q, F
-from datetime import datetime as dt  # Alias datetime class to avoid confusion
-from .models import Room, Booking
+# Local apps
+from .models import (
+    Room,
+    Booking,
+    Guest,
+    BookingGuest,
+    Meal,
+    MealPreference,
+    Payment,
+)
+
 
 def home(request):
     rooms = Room.objects.filter(is_available=True)
@@ -341,6 +365,13 @@ def dashboard(request):
 
     return render(request, "dashboard.html", {"guest": guest, "bookings": bookings})
 
+# @login_required
+# from django.contrib.auth.decorators import login_required
+# from django.shortcuts import render, redirect, get_object_or_404
+# from django.contrib import messages
+# from django.db.models import Sum
+# from .models import Booking, Guest
+
 @login_required
 def booking_details(request, booking_id):
     try:
@@ -350,26 +381,20 @@ def booking_details(request, booking_id):
         return redirect("dashboard")
 
     booking = get_object_or_404(Booking, id=booking_id, primary_guest=guest)
+    
+    # Calculate payment status
+    total_paid = booking.payments.aggregate(total=Sum("amount"))["total"] or 0
+    booking.total_paid = total_paid
+    booking.balance = booking.total_price - total_paid
+    if total_paid >= booking.total_price:
+        booking.payment_status = "Paid"
+    elif total_paid > 0:
+        booking.payment_status = "Partial"
+    else:
+        booking.payment_status = "Unpaid"
+
     return render(request, "booking_details.html", {"booking": booking})
 
-
-from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse
-from django.db.models import Q, Sum
-from django.utils.dateparse import parse_date
-from decimal import Decimal
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login, logout
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from .models import Room, Booking, Guest, BookingGuest, Meal, MealPreference, Payment
-from django.http import HttpResponse
-import datetime
-from reportlab.lib.pagesizes import A4
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm
 
 @login_required
 def print_receipt(request, booking_id):
